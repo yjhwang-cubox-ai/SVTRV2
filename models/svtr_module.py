@@ -18,10 +18,14 @@ class SVTR(L.LightningModule):
     def __init__(self):
         super().__init__()
         self.save_hyperparameters()
+        # preprocessing parameters -> Lightning Module 에서 처리해야 메모리 효율적, GPU 에서 직접 처리 가능
+        self.register_buffer('mean', torch.tensor([127.5]).view(1, 1, 1, 1))
+        self.register_buffer('std', torch.tensor([127.5]).view(1, 1, 1, 1))
 
         self.dictionary = Dictionary("dicts/lao_dict.txt")
         self.criterion = CTCModuleLoss(dictionary=self.dictionary)
 
+        # model components
         self.preprocessor = STN(in_channels=3)
         self.encoder = SVTREncoder()
         self.decoder = SVTRDecoder(in_channels=192, dictionary=self.dictionary)
@@ -34,17 +38,23 @@ class SVTR(L.LightningModule):
         x = self.decoder(out_enc = x, training=self.training)
         return x
 
+    def preprocess(self, batch):
+        img = batch['img'].float()
+        img = (img - self.mean) / self.std
+        batch['img'] = img
+        return batch
+
     def training_step(self, batch, batch_idx):
-        image, text = batch
-        x = self(image)
-        train_loss = self.criterion(x, text)
+        batch = self.preprocess(batch)
+        x = self(batch['img'])
+        train_loss = self.criterion(x, batch['label'])
         self.log('train_loss', train_loss)
         return train_loss
     
     def validation_step(self, batch, batch_idx):
-        image, text = batch
-        x = self(image)
-        val_loss = self.criterion(x, text)
+        batch = self.preprocess(batch)
+        x = self(batch['img'])
+        val_loss = self.criterion(x, batch['label'])
         self.log('val_loss', val_loss)
         return val_loss
     
@@ -58,7 +68,7 @@ class SVTR(L.LightningModule):
         )
 
         #warm up
-        scheduler1 = LinearLR(
+        warmup_scheduler = LinearLR(
             optimizer,
             start_factor=0.5,
             end_factor=1.0,
@@ -66,7 +76,7 @@ class SVTR(L.LightningModule):
         )
 
         remaining_epochs = self.trainer.max_epochs - 2
-        scheduler2 = CosineAnnealingLR(
+        cosine_scheduler = CosineAnnealingLR(
             optimizer,
             T_max=remaining_epochs * self.trainer.estimated_stepping_batches // self.trainer.max_epochs,
             eta_min=0
@@ -75,7 +85,7 @@ class SVTR(L.LightningModule):
         scheduler = {
             'scheduler': torch.optim.lr_scheduler.SequentialLR(
                 optimizer,
-                schedulers=[scheduler1, scheduler2],
+                schedulers=[warmup_scheduler, cosine_scheduler],
                 milestones=[2 * self.trainer.estimated_stepping_batches // self.trainer.max_epochs] #milestones: SequentialLR 에서 스케줄러를 전환하는 시점을 지정하는 파라미터
             ),
             'interval': 'step',

@@ -183,6 +183,7 @@ class STN(nn.Module):
                      dict(type='Xavier', layer='Conv2d'),
                      dict(type='Constant', val=1, layer='BatchNorm2d'),
                  ]):
+        super().__init__()
         self.resized_image_size = resized_image_size
         self.num_control_points = num_control_points
         self.tps = TPStransform(output_image_size, num_control_points, margins)

@@ -31,7 +31,7 @@ class SVTRDecoder(nn.Module):
         self.softmax = nn.Softmax(dim=-1)
 
     def forward(self, 
-                feat: Optional[torch.Tensor] = None,
+                # feat: Optional[torch.Tensor] = None,
                 out_enc: Optional[torch.Tensor] = None,
                 training: bool = True) -> torch.Tensor:
         """Forward function.

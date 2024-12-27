@@ -10,6 +10,7 @@ class OverlapPatchEmbed(nn.Module):
                  embed_dims: int = 768,
                  num_layers: int = 2):
         
+        super().__init__()        
         assert num_layers in [2, 3], \
             'The number of layers must belong to [2,3]'
 
@@ -36,6 +37,8 @@ class OverlapPatchEmbed(nn.Module):
                 f'gelu{str(num_layers - num)}',
                 nn.GELU()
             )
+            _input = _output
+            
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward function.
 

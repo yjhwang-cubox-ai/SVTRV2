@@ -1,0 +1,16 @@
+wandb:
+  project_name: 'svtr-lao'
+  wandb_name: 'experiment_1227'
+  api-key: '53f960c86b81377b89feb5d30c90ddc6c3810d3a'
+
+data:
+  train:
+    - '/data/LaoTestset/Lao_1015_TEST/annotation_norm_1125.json'
+    - '/data/LaoTestset/Lao_1021_TEST/annotation_norm_1125.json'
+  val:
+    - '/data/LaoTestset/Lao_1015_TEST/annotation_norm_1125.json'
+  batch_size: 16
+  num_workers: 4
+
+training:
+  max_epochs: 100

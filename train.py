@@ -41,9 +41,9 @@ def main(args):
     trainer = L.Trainer(
         max_epochs = args['training']['max_epochs'],
         accelerator = 'gpu',
-        devices = 1,
-        num_nodes = 1,
-        # strategy='ddp_find_unused_parameters_true',
+        devices = 8,
+        num_nodes = 2,
+        strategy='ddp_find_unused_parameters_true',
         callbacks = callbacks,
         logger = logger
     )

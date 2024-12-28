@@ -2,9 +2,7 @@
 # 일단 모델 config 생략
 
 import torch
-import torch.nn as nn
 import lightning as L
-from typing import Dict, Any, Optional
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import LinearLR, CosineAnnealingLR
 
@@ -35,7 +33,7 @@ class SVTR(L.LightningModule):
     def forward(self, x):
         x = self.preprocessor(x)
         x = self.encoder(x)
-        x = self.decoder(out_enc = x, training=self.training)
+        x = self.decoder(out_enc = x)
         return x
 
     def preprocess(self, batch):
@@ -48,14 +46,14 @@ class SVTR(L.LightningModule):
         batch = self.preprocess(batch)
         x = self(batch['img'])
         train_loss = self.criterion(x, batch['label'])
-        self.log('train_loss', train_loss)
+        self.log('train_loss', train_loss, prog_bar=True, sync_dist=True)
         return train_loss
     
     def validation_step(self, batch, batch_idx):
         batch = self.preprocess(batch)
         x = self(batch['img'])
         val_loss = self.criterion(x, batch['label'])
-        self.log('val_loss', val_loss)
+        self.log('val_loss', val_loss, prog_bar=True, sync_dist=True)
         return val_loss
     
     def configure_optimizers(self):

@@ -1,16 +1,32 @@
 wandb:
-  project_name: 'svtr-lao'
-  wandb_name: 'experiment_1227'
+  project_name: 'svtr-Lao-ID'
+  wandb_name: 'pretraining_1228'
   api-key: '53f960c86b81377b89feb5d30c90ddc6c3810d3a'
 
 data:
   train:
-    - '/data/LaoTestset/Lao_1015_TEST/annotation_norm_1125.json'
-    - '/data/LaoTestset/Lao_1021_TEST/annotation_norm_1125.json'
+    - '/purestorage/OCR/LaoDataSet/Lao_0824/annotation_norm_1111.json'
+    - '/purestorage/OCR/LaoDataSet/Lao_0905/annotation_norm_1111.json'
+    - '/purestorage/OCR/LaoDataSet/Lao_0906/annotation_norm_1111.json'
+    - '/purestorage/OCR/LaoDataSet/Lao_0909/annotation_norm_1111.json'
+    - '/purestorage/OCR/LaoDataSet/Lao_0910/annotation_norm_1111.json'
+    - '/purestorage/OCR/LaoDataSet/Lao_0911/annotation_norm_1111.json'
+    - '/purestorage/OCR/LaoDataSet/Lao_0912/annotation_norm_1111.json'
+    - '/purestorage/OCR/LaoDataSet/Lao_0919/annotation_norm_1111.json'
+    - '/purestorage/OCR/LaoDataSet/Lao_0920/annotation_norm_1111.json'
+    - '/purestorage/OCR/LaoDataSet/Lao_0924/annotation_norm_1111.json'
+    - '/purestorage/OCR/LaoDataSet/Lao_0925/annotation_norm_1111.json'
+    - '/purestorage/OCR/LaoDataSet/Lao_gen_1212/annotation.json'
+
   val:
-    - '/data/LaoTestset/Lao_1015_TEST/annotation_norm_1125.json'
-  batch_size: 16
+    - '/purestorage/OCR/LaoDataSet/TESTSET/Lao_1015_TEST/annotation_norm_1112.json'
+    - '/purestorage/OCR/LaoDataSet/TESTSET/Lao_1021_TEST/annotation_norm_1112.json'
+    - '/purestorage/OCR/LaoDataSet/TESTSET/Lao_1118_TEST/annotation_new.json'
+    - '/purestorage/OCR/LaoDataSet/TESTSET/Lao_1125_TEST/annotation_new.json'
+    - '/purestorage/OCR/LaoDataSet/TESTSET/Lao_1202_TEST/annotation_new.json'
+
+  batch_size: 32
   num_workers: 4
 
 training:
-  max_epochs: 100
+  max_epochs: 300

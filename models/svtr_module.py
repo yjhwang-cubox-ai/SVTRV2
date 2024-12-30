@@ -2,15 +2,30 @@
 # 일단 모델 config 생략
 
 import torch
+import torch.nn as nn
 import lightning as L
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import LinearLR, CosineAnnealingLR
 
-from utils.dictionary import Dictionary
+from data.dictionary import Dictionary
 from models.preprocessor.tps_preprocessor import STN
 from models.encoder.svtr_encoder import SVTREncoder
 from models.decoder.svtr_decoder import SVTRDecoder
 from models.module_loss.ctc_module_loss import CTCModuleLoss
+
+class SVTRModel(nn.Module):
+    def __init__(self, dictionary):
+        super().__init__()
+        self.preprocessor = STN(in_channels=3)
+        self.encoder = SVTREncoder()
+        self.decoder = SVTRDecoder(in_channels=192, dictionary=self.dictionary)
+    
+    def forward(self, x):
+        x = self.preprocessor(x)
+        x = self.encoder(x)
+        x = self.decoder(out_enc=x)
+        return x
+    
 
 class SVTR(L.LightningModule):
     def __init__(self):
@@ -24,17 +39,15 @@ class SVTR(L.LightningModule):
         self.criterion = CTCModuleLoss(dictionary=self.dictionary)
 
         # model components
-        self.preprocessor = STN(in_channels=3)
-        self.encoder = SVTREncoder()
-        self.decoder = SVTRDecoder(in_channels=192, dictionary=self.dictionary)
+        # self.preprocessor = STN(in_channels=3)
+        # self.encoder = SVTREncoder()
+        # self.decoder = SVTRDecoder(in_channels=192, dictionary=self.dictionary)
+        self.model = SVTRModel(self.dictionary)
 
         self.base_lr = 5e-4 * 2048/2048
     
     def forward(self, x):
-        x = self.preprocessor(x)
-        x = self.encoder(x)
-        x = self.decoder(out_enc = x)
-        return x
+        return self.model(x)
 
     def preprocess(self, batch):
         img = batch['img'].float()

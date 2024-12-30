@@ -4,7 +4,7 @@ from typing import Dict, Sequence, Union
 import torch
 import torch.nn as nn
 
-from utils.dictionary import Dictionary
+from data.dictionary import Dictionary
 
 class CTCModuleLoss(nn.Module):
     def __init__(

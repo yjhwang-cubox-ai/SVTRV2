@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from typing import Optional, Dict, Union
-from utils.dictionary import Dictionary
+from data.dictionary import Dictionary
 
 class SVTRDecoder(nn.Module):
     """Decoder module in SVTR (Scene Text Recognition with a Single Visual Model).

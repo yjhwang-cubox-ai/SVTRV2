@@ -46,7 +46,12 @@ class SVTR(L.LightningModule):
         batch = self.preprocess(batch)
         x = self(batch['img'])
         train_loss = self.criterion(x, batch['label'])
+
+        #lr monitoring
+        current_lr = self.optimizers().param_groups[0]['lr']
+
         self.log('train_loss', train_loss, prog_bar=True, sync_dist=True)
+        self.log('learning_rate', current_lr)
         return train_loss
     
     def validation_step(self, batch, batch_idx):
@@ -76,7 +81,8 @@ class SVTR(L.LightningModule):
         remaining_epochs = self.trainer.max_epochs - 2
         cosine_scheduler = CosineAnnealingLR(
             optimizer,
-            T_max=remaining_epochs * self.trainer.estimated_stepping_batches // self.trainer.max_epochs,
+            # T_max=remaining_epochs * self.trainer.estimated_stepping_batches // self.trainer.max_epochs,
+            T_max=19,
             eta_min=0
         )
 

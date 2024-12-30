@@ -14,8 +14,9 @@ from models.decoder.svtr_decoder import SVTRDecoder
 from models.module_loss.ctc_module_loss import CTCModuleLoss
 
 class SVTRModel(nn.Module):
-    def __init__(self, dictionary):
+    def __init__(self):
         super().__init__()
+        self.dictionary = Dictionary("dicts/lao_dict.txt")
         self.preprocessor = STN(in_channels=3)
         self.encoder = SVTREncoder()
         self.decoder = SVTRDecoder(in_channels=192, dictionary=self.dictionary)
@@ -32,46 +33,44 @@ class SVTR(L.LightningModule):
         super().__init__()
         self.save_hyperparameters()
         # preprocessing parameters -> Lightning Module 에서 처리해야 메모리 효율적, GPU 에서 직접 처리 가능
-        self.register_buffer('mean', torch.tensor([127.5]).view(1, 1, 1, 1))
-        self.register_buffer('std', torch.tensor([127.5]).view(1, 1, 1, 1))
+        self.mean = torch.tensor([127.5]).view(1, 1, 1, 1)
+        self.std = torch.tensor([127.5]).view(1, 1, 1, 1)
 
         self.dictionary = Dictionary("dicts/lao_dict.txt")
         self.criterion = CTCModuleLoss(dictionary=self.dictionary)
 
-        # model components
-        # self.preprocessor = STN(in_channels=3)
-        # self.encoder = SVTREncoder()
-        # self.decoder = SVTRDecoder(in_channels=192, dictionary=self.dictionary)
-        self.model = SVTRModel(self.dictionary)
+        self.model = SVTRModel()
 
         self.base_lr = 5e-4 * 2048/2048
     
     def forward(self, x):
+        x = x.float()
+        x = (x - self.mean.to(self.device)) / self.std.to(self.device)
         return self.model(x)
 
-    def preprocess(self, batch):
-        img = batch['img'].float()
-        img = (img - self.mean) / self.std
-        batch['img'] = img
-        return batch
+    # def preprocess(self, batch):
+    #     img = batch['img'].float()
+    #     img = (img - self.mean) / self.std
+    #     batch['img'] = img
+    #     return batch
 
     def training_step(self, batch, batch_idx):
-        batch = self.preprocess(batch)
+        # batch = self.preprocess(batch)
         x = self(batch['img'])
         train_loss = self.criterion(x, batch['label'])
 
         #lr monitoring
         current_lr = self.optimizers().param_groups[0]['lr']
 
-        self.log('train_loss', train_loss, prog_bar=True, sync_dist=True)
+        self.log('train_loss', train_loss, batch_size=x.size(0), prog_bar=True, sync_dist=False)
         self.log('learning_rate', current_lr)
         return train_loss
     
     def validation_step(self, batch, batch_idx):
-        batch = self.preprocess(batch)
+        # batch = self.preprocess(batch)
         x = self(batch['img'])
         val_loss = self.criterion(x, batch['label'])
-        self.log('val_loss', val_loss, prog_bar=True, sync_dist=True)
+        self.log('val_loss', val_loss, batch_size=x.size(0), prog_bar=True, sync_dist=False)
         return val_loss
     
     def configure_optimizers(self):
@@ -94,8 +93,7 @@ class SVTR(L.LightningModule):
         remaining_epochs = self.trainer.max_epochs - 2
         cosine_scheduler = CosineAnnealingLR(
             optimizer,
-            # T_max=remaining_epochs * self.trainer.estimated_stepping_batches // self.trainer.max_epochs,
-            T_max=19,
+            T_max=remaining_epochs * self.trainer.estimated_stepping_batches // self.trainer.max_epochs,
             eta_min=0
         )
 

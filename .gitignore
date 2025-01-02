@@ -1,3 +1,6 @@
 __pycache__
 wandb
 svtr-lao
+*.ckpt
+convert_temp
+*.jpg

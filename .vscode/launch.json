@@ -10,6 +10,20 @@
             "request": "launch",
             "program": "train.py",
             "console": "integratedTerminal"
+        },
+        {
+            "name": "infer",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "inference.py",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "eval",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "eval.py",
+            "console": "integratedTerminal"
         }
     ]
 }

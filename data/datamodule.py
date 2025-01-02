@@ -34,7 +34,8 @@ class LaoDataModule(L.LightningDataModule):
             batch_size=self.batch_size,
             shuffle=True,
             num_workers=self.num_workers,
-            pin_memory=True
+            pin_memory=False,
+            drop_last=True
         )
 
     def val_dataloader(self):
@@ -44,7 +45,8 @@ class LaoDataModule(L.LightningDataModule):
                 batch_size=self.batch_size,
                 shuffle=False,
                 num_workers=self.num_workers,
-                pin_memory=True
+                pin_memory=False,
+                drop_last=True
             )
 
     def test_dataloader(self):
@@ -54,28 +56,5 @@ class LaoDataModule(L.LightningDataModule):
                 batch_size=self.batch_size,
                 shuffle=False,
                 num_workers=self.num_workers,
-                pin_memory=True
+                pin_memory=False
             )
-        
-
-
-
-
-
-# 사용 예시
-"""
-transform = transforms.Compose([
-    transforms.Resize((32, 100)),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-])
-
-data_module = TextRecognitionDataModule(
-    train_data_dir='path/to/train/images',
-    train_anno_file='path/to/train/labels.txt',
-    val_data_dir='path/to/val/images',
-    val_anno_file='path/to/val/labels.txt',
-    batch_size=32,
-    transform=transform
-)
-"""

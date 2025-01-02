@@ -48,14 +48,7 @@ class SVTR(L.LightningModule):
         x = (x - self.mean.to(self.device)) / self.std.to(self.device)
         return self.model(x)
 
-    # def preprocess(self, batch):
-    #     img = batch['img'].float()
-    #     img = (img - self.mean) / self.std
-    #     batch['img'] = img
-    #     return batch
-
     def training_step(self, batch, batch_idx):
-        # batch = self.preprocess(batch)
         x = self(batch['img'])
         train_loss = self.criterion(x, batch['label'])
 
@@ -67,7 +60,6 @@ class SVTR(L.LightningModule):
         return train_loss
     
     def validation_step(self, batch, batch_idx):
-        # batch = self.preprocess(batch)
         x = self(batch['img'])
         val_loss = self.criterion(x, batch['label'])
         self.log('val_loss', val_loss, batch_size=x.size(0), prog_bar=True, sync_dist=False)

@@ -52,9 +52,6 @@ def main():
     with open("log.txt", "w", encoding="utf-8") as f:
          for result in infer_results:
             f.write(f"{result}\n")
-    
-    # with open("log.txt", "r", encoding="utf-8") as f:
-    #     results = [ast.literal_eval(result) for result in f.readlines()] 
 
     one_minus_ned = OneMinusNEDMetric()
     one_mainus_ned_results = one_minus_ned.compute_metrics(infer_results)

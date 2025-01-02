@@ -10,7 +10,7 @@ class TextRecogAugmentations:
                     A.MotionBlur(blur_limit=3, p=0.5),
                     A.MedianBlur(blur_limit=3, p=0.5),
                     A.GaussianBlur(blur_limit=(3,5), p=0.5),
-                ], p=1.0),
+                ], p=0.4),
 
                 # CropHeight
                 A.RandomResizedCrop(
@@ -25,7 +25,7 @@ class TextRecogAugmentations:
                 A.GaussianBlur(
                     blur_limit=(5, 5),
                     sigma_limit=(1, 1),
-                    p=1.0
+                    p=0.4
                 ),
                 
                 # ColorJitter
@@ -34,23 +34,23 @@ class TextRecogAugmentations:
                     contrast=0.5,
                     saturation=0.5,
                     hue=0.1,
-                    p=1.0
+                    p=0.4
                 ),
                 
                 # ImageContentJitter와 유사한 효과
                 A.OneOf([
                     A.RandomBrightnessContrast(p=1),
                     A.RandomGamma(p=1),
-                ], p=1.0),
+                ], p=0.4),
                 
                 # AdditiveGaussianNoise
                 A.GaussNoise(
                     var_limit=(0.1**0.5, 0.1**0.5),
-                    p=1.0
+                    p=0.4
                 ),
                 
                 # ReversePixels와 유사한 효과
-                A.InvertImg(p=1.0),
+                A.InvertImg(p=0.4),
                 
                 # Final resize
                 A.Resize(height=64, width=256),

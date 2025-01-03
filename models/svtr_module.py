@@ -55,14 +55,14 @@ class SVTR(L.LightningModule):
         #lr monitoring
         current_lr = self.optimizers().param_groups[0]['lr']
 
-        self.log('train_loss', train_loss, batch_size=x.size(0), prog_bar=True, sync_dist=False)
+        self.log('train_loss', train_loss, batch_size=x.size(0), prog_bar=True, sync_dist=True)
         self.log('learning_rate', current_lr)
         return train_loss
     
     def validation_step(self, batch, batch_idx):
         x = self(batch['img'])
         val_loss = self.criterion(x, batch['label'])
-        self.log('val_loss', val_loss, batch_size=x.size(0), prog_bar=True, sync_dist=False)
+        self.log('val_loss', val_loss, batch_size=x.size(0), prog_bar=True, sync_dist=True)
         return val_loss
     
     def configure_optimizers(self):
@@ -74,28 +74,27 @@ class SVTR(L.LightningModule):
             weight_decay = 0.05
         )
 
-        #warm up
+        # warmup
         warmup_scheduler = LinearLR(
             optimizer,
             start_factor=0.5,
             end_factor=1.0,
-            total_iters=2 * self.trainer.estimated_stepping_batches // self.trainer.max_epochs
+            total_iters=2
         )
 
-        remaining_epochs = self.trainer.max_epochs - 2
         cosine_scheduler = CosineAnnealingLR(
             optimizer,
-            T_max=remaining_epochs * self.trainer.estimated_stepping_batches // self.trainer.max_epochs,
-            eta_min=0
+            T_max=19,
+            eta_min=self.base_lr * 0.05
         )
 
         scheduler = {
             'scheduler': torch.optim.lr_scheduler.SequentialLR(
                 optimizer,
                 schedulers=[warmup_scheduler, cosine_scheduler],
-                milestones=[2 * self.trainer.estimated_stepping_batches // self.trainer.max_epochs] #milestones: SequentialLR 에서 스케줄러를 전환하는 시점을 지정하는 파라미터
+                milestones=[2]
             ),
-            'interval': 'step',
+            'interval': 'epoch',  # step에서 epoch로 변경
             'frequency': 1
         }
         

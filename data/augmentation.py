@@ -18,7 +18,7 @@ class TextRecogAugmentations:
                     width=256,
                     scale=(0.8, 1.0),
                     ratio=(2.0, 4.0),
-                    p=0.1
+                    p=0.4
                 ),
 
                 # GaussianBlur

@@ -178,11 +178,7 @@ class STN(nn.Module):
                  resized_image_size: Tuple[int, int] = (32, 64),
                  output_image_size: Tuple[int, int] = (32, 100),
                  num_control_points: int = 20,
-                 margins: Tuple[float, float] = [0.05, 0.05],
-                 init_cfg: Optional[Union[Dict, List[Dict]]] = [
-                     dict(type='Xavier', layer='Conv2d'),
-                     dict(type='Constant', val=1, layer='BatchNorm2d'),
-                 ]):
+                 margins: Tuple[float, float] = [0.05, 0.05]):
         super().__init__()
         self.resized_image_size = resized_image_size
         self.num_control_points = num_control_points

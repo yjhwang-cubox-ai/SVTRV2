@@ -55,14 +55,14 @@ class SVTR(L.LightningModule):
         #lr monitoring
         current_lr = self.optimizers().param_groups[0]['lr']
 
-        self.log('train_loss', train_loss, batch_size=x.size(0), prog_bar=True, sync_dist=True)
+        self.log('train_loss', train_loss, prog_bar=True, sync_dist=True)
         self.log('learning_rate', current_lr)
         return train_loss
     
     def validation_step(self, batch, batch_idx):
         x = self(batch['img'])
         val_loss = self.criterion(x, batch['label'])
-        self.log('val_loss', val_loss, batch_size=x.size(0), prog_bar=True, sync_dist=True)
+        self.log('val_loss', val_loss, prog_bar=True, sync_dist=True)
         return val_loss
     
     def configure_optimizers(self):

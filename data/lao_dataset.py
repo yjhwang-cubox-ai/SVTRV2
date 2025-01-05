@@ -26,7 +26,7 @@ class LaoDataset(Dataset):
         img_path = self.data_list[idx]['img_path']
         text = self.data_list[idx]['instances'][0]['text']
         image = cv2.imread(img_path)
-
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image = self.transform(image)
             
         return {

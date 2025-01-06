@@ -1,19 +1,26 @@
 import cv2
 import numpy as np
-from typing import Dict, List, Tuple
 import random
+import torch
+from torchvision.transforms import ToTensor
+from typing import Dict, List, Tuple
 
 class TextRecogAugmentations:
     def __init__(self, is_train: bool, prob: float = 0.4):
         # 단일 resize 객체만 생성
         self.resize = Resize(scale=(256, 64))
+        self.to_tensor = ToTensor()
         
         if is_train:
             # train 모드일 때만 리스트 생성
             self.train_augs = [
                 (TextRecogGeneralAug(), prob),
                 (CropHeight(), prob),
-                # ... 다른 augmentations
+                (GaussianBlur(), prob),
+                (ColorJitter(), prob),
+                (ImageContentJitter(), prob),
+                (AdditiveGaussianNoise(scale=0.1**0.5), prob),
+                (ReversePixels(), prob)
             ]
         self.is_train = is_train
 
@@ -27,12 +34,19 @@ class TextRecogAugmentations:
                 if apply:
                     image = aug(image)
         
+        # resize 수행 후 tensor로 변환
+        image = self.resize(image)
+        
+        # 이미지가 이미 tensor인 경우 변환하지 않음
+        if not isinstance(image, torch.Tensor):
+            image = self.to_tensor(image)
+        
         # 단일 resize 연산만 수행
-        return self.resize(image)
+        return image
     
 
 class TextRecogGeneralAug:
-    def __call__(self, results: Dict) -> Dict:
+    def __call__(self, img: np.ndarray)->np.ndarray:
         """Call function to pad images.
 
         Args:
@@ -41,15 +55,14 @@ class TextRecogGeneralAug:
         Returns:
             dict: Updated result dict.
         """
-        h, w = results['img'].shape[:2]
+        h, w = img.shape[:2]
         if h >= 20 and w >= 20:
-            results['img'] = self.tia_distort(results['img'], random.randint(3, 6))
-            results['img'] = self.tia_stretch(results['img'], random.randint(3, 6))
-        h, w = results['img'].shape[:2]
+            img = self.tia_distort(img, random.randint(3, 6))
+            img = self.tia_stretch(img, random.randint(3, 6))
+        h, w = img.shape[:2]
         if h >= 5 and w >= 5:
-            results['img'] = self.tia_perspective(results['img'])
-        results['img_shape'] = results['img'].shape[:2]
-        return results
+            img = self.tia_perspective(img)
+        return img
 
     def __repr__(self) -> str:
         repr_str = self.__class__.__name__
@@ -369,7 +382,7 @@ class CropHeight:
         crop_top = random.randint(0, 1)
         return crop_pixels, crop_top
 
-    def __call__(self, results: Dict) -> Dict:
+    def __call__(self, img: np.ndarray) -> np.ndarray:
         """Transform function to crop images.
 
         Args:
@@ -378,17 +391,15 @@ class CropHeight:
         Returns:
             dict: Cropped results.
         """
-        h = results['img'].shape[0]
+        h = img.shape[0]
         crop_pixels, crop_top = self.get_random_vars()
         crop_pixels = min(crop_pixels, h - 1)
-        img = results['img'].copy()
+        _img = img.copy()
         if crop_top:
-            img = img[crop_pixels:h, :, :]
+            _img = _img[crop_pixels:h, :, :]
         else:
-            img = img[0:h - crop_pixels, :, :]
-        results['img_shape'] = img.shape[:2]
-        results['img'] = img
-        return results
+            _img = _img[0:h - crop_pixels, :, :]
+        return _img
 
     def __repr__(self) -> str:
         repr_str = self.__class__.__name__
@@ -400,28 +411,26 @@ class GaussianBlur:
     def __init__(self, kernel_size = 5, sigma = 1):
         self.kernel_size = kernel_size
         self.sigma = sigma
-        self.condition = 'min(results["img_shape"])>100'
+        self.condition = 'min(img.shape)>100'
 
-    def __call__(self, results: Dict) -> Dict:
+    def __call__(self, img: np.ndarray) -> np.ndarray:
         if eval(self.condition):
-            img = results['img'][..., ::-1]
+            img = img[..., ::-1]
             img = cv2.GaussianBlur(img, (self.kernel_size, self.kernel_size), self.sigma)
             img = img[..., ::-1]
-            results['img'] = img
-            results['img_shape'] = img.shape[:2]
-            return results
+            return img
         else:
-            return results
+            return img
 
 class ColorJitter:
-    def __init__(self, brightness=0.5, contrast=0.5, saturation=0.5, hue=0.5):
+    def __init__(self, brightness=0.5, contrast=0.5, saturation=0.5, hue=0.1):
         self.brightness = brightness
         self.contrast = contrast
         self.saturation = saturation
         self.hue = hue
 
-    def __call__(self, results: Dict) -> Dict:
-        img = results['img'][...,::-1]                
+    def __call__(self, img: np.ndarray) -> np.ndarray:
+        img = img[...,::-1]                
         if self.brightness > 0:
             img = self.adjust_brightness(img, self.brightness)
         if self.contrast > 0:
@@ -431,9 +440,7 @@ class ColorJitter:
         if self.hue > 0:
             img = self.adjust_hue(img, self.hue)
         img = img[...,::-1]
-        results['img'] = img
-        results['img_shape'] = img.shape[:2]
-        return results
+        return img
 
     def adjust_brightness(self, img, factor):
         factor = random.uniform(max(0, 1 - factor), 1 + factor)
@@ -456,16 +463,15 @@ class ColorJitter:
         return cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
 
 class ImageContentJitter:
-    def __call__(self, results: Dict) -> Dict:
-        h, w = results['img'].shape[:2]
-        img = results['img'].copy()
+    def __call__(self, img: np.ndarray) -> np.ndarray:
+        h, w = img.shape[:2]
+        _img = img.copy()
         if h > 10 and w > 10:
             thres = min(h, w)
             jitter_range = int(random.random() * thres * 0.01)
             for i in range(jitter_range):
-                img[i:, i:, :] = img[:h - i, :w - i, :]
-        results['img'] = img
-        return results
+                _img[i:, i:, :] = _img[:h - i, :w - i, :]
+        return _img
 
     def __repr__(self) -> str:
         repr_str = self.__class__.__name__
@@ -473,49 +479,27 @@ class ImageContentJitter:
         return repr_str
 
 class AdditiveGaussianNoise:
-    def __init__(self, scale=0.1):
+    def __init__(self, scale=0.1**0.5):
         self.scale = scale
 
-    def __call__(self, results: Dict) -> Dict:
-        img = results['img'].copy()
+    def __call__(self, img: np.ndarray) -> np.ndarray:
+        _img = img.copy()
 
-        noise = np.random.normal(loc=0, scale=eval(self.scale), size=img.shape)
-        noisy_img = img + noise
+        noise = np.random.normal(loc=0, scale=self.scale, size=img.shape)
+        noisy_img = _img + noise
         noisy_img = np.clip(noisy_img, 0, 255).astype(np.uint8)
-        results['img'] = noisy_img
-        results['img_shape'] = noisy_img.shape[:2]
-        return results
+        return noisy_img
 
 class ReversePixels:
-    def __call__(self, results: Dict) -> Dict:
-        results['img'] = 255. - results['img'].copy()
-        return results
+    def __call__(self, img: np.ndarray) -> np.ndarray:
+        img = 255. - img.copy()
+        return img
 
 class Resize:
     def __init__(self, scale=(256,64)):
         self.scale = scale
 
-    def __call__(self, results: Dict) -> Dict:
-        results['scale'] = self.scale
+    def __call__(self, img):
+        resized_img = cv2.resize(img, self.scale, interpolation=cv2.INTER_LINEAR)
 
-        results = self._resize_img(results)
-
-        #ToDo
-        #self._resize_bboxes(results)
-        #self._resize_seg(results)
-        #self._resize_keypoints(results)
-
-        return results
-    
-    def _resize_img(self, results: Dict) -> Dict:
-        h, w = results['img'].shape[:2]
-        resized_img = cv2.resize(results['img'], results['scale'], interpolation=cv2.INTER_LINEAR)        
-        w_scale = results['scale'][0] / w
-        h_scale = results['scale'][1] / h
-
-        results['img'] = resized_img
-        results['img_shape'] = resized_img.shape[:2]
-        results['scale_factor'] = (w_scale, h_scale)
-        results['keep_ratio'] = False
-        
-        return results
+        return resized_img

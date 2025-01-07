@@ -1,13 +1,15 @@
 from argparse import ArgumentParser
 import yaml
 import os
+import torch
 import lightning as L
 from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
 from lightning.pytorch.loggers import WandbLogger
 from data.datamodule import LaoDataModule
-
 from models.svtr_module import SVTR
 import wandb
+
+torch.set_float32_matmul_precision('high') 
 
 def main(args):
     # 데이터 모듈 준비
@@ -41,8 +43,8 @@ def main(args):
     trainer = L.Trainer(
         max_epochs = args['training']['max_epochs'],
         accelerator = 'gpu',
-        devices = 8,
-        num_nodes = 2,
+        devices = 1,
+        num_nodes = 8,
         strategy='ddp_find_unused_parameters_true',
         callbacks = callbacks,
         logger = logger

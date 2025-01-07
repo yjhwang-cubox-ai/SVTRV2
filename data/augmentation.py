@@ -39,7 +39,9 @@ class TextRecogAugmentations:
         
         # 이미지가 이미 tensor인 경우 변환하지 않음
         if not isinstance(image, torch.Tensor):
-            image = self.to_tensor(image)
+            # image = self.to_tensor(image)
+            image = torch.from_numpy(image).permute(2,0,1)
+            image = image.to(dtype=torch.float32)
         
         # 단일 resize 연산만 수행
         return image

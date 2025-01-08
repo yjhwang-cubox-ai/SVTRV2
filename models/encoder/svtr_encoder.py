@@ -300,9 +300,7 @@ class MixingBlock(nn.Module):
        super().__init__()
 
        # Layer normalization
-       self.norm1 = nn.LayerNorm(embed_dims, eps=1e-6)
-       self.norm2 = nn.LayerNorm(embed_dims, eps=1e-6)
-       
+       self.norm1 = nn.LayerNorm(embed_dims, eps=1e-6)       
        # Select mixer type
        if mixer in {'Global', 'Local'}:
            self.mixer = AttnMixer(
@@ -326,7 +324,8 @@ class MixingBlock(nn.Module):
 
        # Drop path
        self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
-       
+       # Layer normalization
+       self.norm2 = nn.LayerNorm(embed_dims, eps=1e-6)
        # MLP block
        mlp_hidden_dim = int(embed_dims * mlp_ratio)
        self.mlp = MLP(

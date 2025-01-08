@@ -44,7 +44,7 @@ def main(args):
         max_epochs = args['training']['max_epochs'],
         accelerator = 'gpu',
         devices = 1,
-        num_nodes = 8,
+        num_nodes = 1,
         strategy='ddp_find_unused_parameters_true',
         callbacks = callbacks,
         logger = logger
@@ -56,7 +56,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument('--config', default='configs/config.yaml')
+    parser.add_argument('--config', default='configs/config-231.yaml')
     args = parser.parse_args()
 
     with open(args.config) as f:

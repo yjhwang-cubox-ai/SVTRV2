@@ -30,7 +30,7 @@ class CTCModuleLoss(nn.Module):
             zero_infinity=zero_infinity
         )
 
-    def forward(self, outputs: torch.Tensor, gt_texts: list)-> Dict[str, torch.Tensor]:
+    def forward(self, outputs: torch.Tensor, gt_texts: list)-> torch.Tensor:
         # Log softmax for CTC loss
         log_probs = torch.log_softmax(outputs, dim=2)
         batch_size, seq_len = outputs.size(0), outputs.size(1)

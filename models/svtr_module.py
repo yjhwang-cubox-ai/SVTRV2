@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 import lightning as L
 from torch.optim import AdamW
-from torch.optim.lr_scheduler import LinearLR, CosineAnnealingLR
+from torch.optim.lr_scheduler import LinearLR, CosineAnnealingLR, ConstantLR
 
 from data.dictionary import Dictionary
 from models.preprocessor.tps_preprocessor import STN
@@ -87,15 +87,21 @@ class SVTR(L.LightningModule):
 
         cosine_scheduler = CosineAnnealingLR(
             optimizer,
-            T_max=298,
+            T_max=19,
             eta_min=self.base_lr * 0.05
+        )
+
+        constant_scheduler = ConstantLR(
+            optimizer,
+            factor=1.0,  # 이전 스케줄러의 마지막 lr을 유지
+            total_iters=0  # 무한히 지속
         )
 
         scheduler = {
             'scheduler': torch.optim.lr_scheduler.SequentialLR(
                 optimizer,
-                schedulers=[warmup_scheduler, cosine_scheduler],
-                milestones=[2]
+                schedulers=[warmup_scheduler, cosine_scheduler, constant_scheduler],
+                milestones=[2, 21]
             ),
             'interval': 'epoch',  # step에서 epoch로 변경
             'frequency': 1

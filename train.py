@@ -47,7 +47,9 @@ def main(args):
         num_nodes = 1,
         strategy='ddp_find_unused_parameters_true',
         callbacks = callbacks,
-        logger = logger
+        logger = logger,
+        gradient_clip_algorithm='norm',
+        gradient_clip_val=0.5
     )
     
     trainer.fit(model = model, datamodule = data_module)

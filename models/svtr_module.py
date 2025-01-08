@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 import lightning as L
 from torch.optim import AdamW
-from torch.optim.lr_scheduler import LinearLR, CosineAnnealingLR, ConstantLR
+from torch.optim.lr_scheduler import LinearLR, CosineAnnealingLR, LambdaLR
 
 from data.dictionary import Dictionary
 from models.preprocessor.tps_preprocessor import STN
@@ -46,10 +46,10 @@ class SVTR(L.LightningModule):
     def forward(self, x):
         x = x.float()
         x = (x - self.mean.to(self.device)) / self.std.to(self.device)
-        return self.model(x)
+        return self.model(x).contiguous()
 
     def training_step(self, batch, batch_idx):
-        x = self(batch['img'])
+        x = self(batch['img']).contiguous()
         train_loss = self.criterion(x, batch['label'])
 
         #lr monitoring
@@ -91,16 +91,19 @@ class SVTR(L.LightningModule):
             eta_min=self.base_lr * 0.05
         )
 
-        constant_scheduler = ConstantLR(
+        # Fixed LR 스케줄러
+        def fixed_lr(epoch):
+            return cosine_scheduler.get_last_lr()[0] / self.base_lr
+
+        fixed_scheduler = LambdaLR(
             optimizer,
-            factor=1.0,  # 이전 스케줄러의 마지막 lr을 유지
-            total_iters=0  # 무한히 지속
+            lr_lambda=fixed_lr
         )
 
         scheduler = {
             'scheduler': torch.optim.lr_scheduler.SequentialLR(
                 optimizer,
-                schedulers=[warmup_scheduler, cosine_scheduler, constant_scheduler],
+                schedulers=[warmup_scheduler, cosine_scheduler, fixed_scheduler],
                 milestones=[2, 21]
             ),
             'interval': 'epoch',  # step에서 epoch로 변경

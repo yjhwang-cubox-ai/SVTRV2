@@ -503,13 +503,13 @@ class SVTREncoder(nn.Module):
         ]
 
         # Position embedding
-        self.absolute_pos_embed = nn.Parameter(
-            torch.zeros(1, num_patches, embed_dims[0]))
-        self.pos_drop = nn.Dropout(drop_rate)
         # self.absolute_pos_embed = nn.Parameter(
-        #     torch.zeros([1, num_patches, embed_dims[0]], dtype=torch.float32),
-        #     requires_grad=True)
+        #     torch.zeros(1, num_patches, embed_dims[0]))
         # self.pos_drop = nn.Dropout(drop_rate)
+        self.absolute_pos_embed = nn.Parameter(
+            torch.zeros([1, num_patches, embed_dims[0]], dtype=torch.float32),
+            requires_grad=True)
+        self.pos_drop = nn.Dropout(drop_rate)
 
 
         # Calculate drop path rate for each block

@@ -9,7 +9,7 @@ from data.datamodule import LaoDataModule
 from models.svtr_module import SVTR
 import wandb
 
-torch.set_float32_matmul_precision('high') 
+torch.set_float32_matmul_precision('medium')
 
 def main(args):
     # 데이터 모듈 준비
@@ -26,11 +26,10 @@ def main(args):
     # 콜백 정의
     callbacks = [
         ModelCheckpoint(
-            monitor='val_loss',       # 모니터링할 지표
-            mode='min',               # 'min'은 최소값이 최선임을 의미
-            save_top_k=3,             # 최상의 k개 모델만 저장
-            filename='best-checkpoint',  # 저장될 파일명 형식
-            verbose=True              # 저장 시 로그 출력 여부
+            monitor='word_acc',
+            mode='max',
+            filename='{epoch}-{step}-{word_acc:.3f}',
+            verbose=True
         )
     ]
 
@@ -47,9 +46,7 @@ def main(args):
         num_nodes = 1,
         strategy='ddp_find_unused_parameters_true',
         callbacks = callbacks,
-        logger = logger,
-        gradient_clip_algorithm='norm',
-        gradient_clip_val=0.5
+        logger = logger
     )
     
     trainer.fit(model = model, datamodule = data_module)

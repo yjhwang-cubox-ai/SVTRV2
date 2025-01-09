@@ -11,6 +11,7 @@ from data.dictionary import Dictionary
 from models.preprocessor.tps_preprocessor import STN
 from models.encoder.svtr_encoder import SVTREncoder
 from models.decoder.svtr_decoder import SVTRDecoder
+from models.postprocessor.ctc_postprocessor import CTCPostProcessor
 from models.module_loss.ctc_module_loss import CTCModuleLoss
 
 class SVTRModel(nn.Module):
@@ -37,19 +38,20 @@ class SVTR(L.LightningModule):
         self.std = torch.tensor([127.5]).view(1, 1, 1, 1)
 
         self.dictionary = Dictionary("dicts/lao_dict.txt")
-        self.criterion = CTCModuleLoss(dictionary=self.dictionary)
+        self.criterion = CTCModuleLoss(dictionary=self.dictionary)        
 
         self.model = SVTRModel()
+        self.postprocessor = CTCPostProcessor(self.dictionary)
 
         self.base_lr = 5e-4 * 2048/2048
     
     def forward(self, x):
         x = x.float()
         x = (x - self.mean.to(self.device)) / self.std.to(self.device)
-        return self.model(x).contiguous()
+        return self.model(x)
 
     def training_step(self, batch, batch_idx):
-        x = self(batch['img']).contiguous()
+        x = self(batch['img'])
         train_loss = self.criterion(x, batch['label'])
 
         #lr monitoring
@@ -65,8 +67,14 @@ class SVTR(L.LightningModule):
         x = self(batch['img'])
         val_loss = self.criterion(x, batch['label'])
         batch_size = x.shape[0]
+
+        results = self.postprocessor(x)
+
+        word_acc = sum(result['text']==label for result, label in zip(results, batch['label'])) / batch_size
+
         self.log('val_loss', val_loss, prog_bar=True, batch_size=batch_size, sync_dist=True)
-        return val_loss
+        self.log('word_acc', word_acc, prog_bar=True, on_step=False, on_epoch=True, batch_size=batch_size, sync_dist=True)
+        return word_acc
     
     def configure_optimizers(self):
         optimizer = AdamW(

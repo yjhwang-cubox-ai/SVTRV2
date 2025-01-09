@@ -481,7 +481,7 @@ class SVTREncoder(nn.Module):
                  out_channels: int = 192,
                  max_seq_len: int = 25,
                  num_layers: int = 2,
-                 prenorm: bool = True):
+                 prenorm: bool = False):
         super().__init__()
         
         self.img_size = img_size

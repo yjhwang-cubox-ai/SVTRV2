@@ -1,6 +1,7 @@
 # Lightning Module 구현
 # 일단 모델 config 생략
 
+import unicodedata
 import torch
 import torch.nn as nn
 import lightning as L
@@ -43,7 +44,12 @@ class SVTR(L.LightningModule):
         self.model = SVTRModel()
         self.postprocessor = CTCPostProcessor(self.dictionary)
 
-        self.base_lr = 5e-4 * 2048/2048
+        # self.base_lr = 5e-4 * 2048/2048
+        self.base_lr = 5e-4 * 2
+
+        # 카운터 초기화
+        self.val_correct = 0
+        self.val_total = 0
     
     def forward(self, x):
         x = x.float()
@@ -61,6 +67,7 @@ class SVTR(L.LightningModule):
 
         self.log('train_loss', train_loss, prog_bar=True, batch_size=batch_size, sync_dist=True)
         self.log('learning_rate', current_lr)
+        
         return train_loss
     
     def validation_step(self, batch, batch_idx):
@@ -70,11 +77,35 @@ class SVTR(L.LightningModule):
 
         results = self.postprocessor(x)
 
-        word_acc = sum(result['text']==label for result, label in zip(results, batch['label'])) / batch_size
+        def lao_text_postprocess(pred_text):
+            text = unicodedata.normalize("NFKC", pred_text)
+            text = text.replace('ເເ','ແ')
+            text = text.replace('ໍໍ', 'ໍ')  # 연속된 ໍ를 하나로
+            text = text.replace('້ໍ', 'ໍ້')  # ້ໍ를 ໍ້로 변경
+            text = text.replace('ຫນ','ໜ')
+            text = text.replace('ຫມ','ໝ')
+            
+            return text
+
+        correct = sum(lao_text_postprocess(result['text'])==lao_text_postprocess(label) for result, label in zip(results, batch['label']))
+
+        # 누적 카운터 업데이트
+        self.val_correct += correct
+        self.val_total += batch_size
 
         self.log('val_loss', val_loss, prog_bar=True, batch_size=batch_size, sync_dist=True)
-        self.log('word_acc', word_acc, prog_bar=True, on_step=False, on_epoch=True, batch_size=batch_size, sync_dist=True)
-        return word_acc
+
+        return val_loss
+
+    def on_validation_epoch_start(self):
+        # validation epoch 시작할 때 카운터 초기화
+        self.val_correct = 0
+        self.val_total = 0
+
+    def on_validation_epoch_end(self):
+        # epoch 끝나고 전체 accuracy 계산
+        val_accuracy = self.val_correct / self.val_total if self.val_total > 0 else 0
+        self.log('word_acc', val_accuracy, prog_bar=True, sync_dist=True)
     
     def configure_optimizers(self):
         optimizer = AdamW(
@@ -95,7 +126,7 @@ class SVTR(L.LightningModule):
 
         cosine_scheduler = CosineAnnealingLR(
             optimizer,
-            T_max=19,
+            T_max=49,
             eta_min=self.base_lr * 0.05
         )
 

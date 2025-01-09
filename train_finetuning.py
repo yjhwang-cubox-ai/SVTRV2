@@ -1,11 +1,12 @@
 from argparse import ArgumentParser
+import torch
 import yaml
 import os
-import torch
 import lightning as L
 from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
 from lightning.pytorch.loggers import WandbLogger
 from data.datamodule import LaoDataModule
+
 from models.svtr_module import SVTR
 import wandb
 
@@ -22,6 +23,10 @@ def main(args):
 
     # 모델 생성
     model = SVTR()
+    checkpoint = torch.load('epoch=12-step=29484-word_acc=0.997.ckpt', weights_only=True)
+    model.load_state_dict(checkpoint['state_dict'])
+
+    # model.base_lr = 1e-5
 
     # 콜백 정의
     callbacks = [
@@ -56,7 +61,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument('--config', default='configs/config_pre.yaml')
+    parser.add_argument('--config', default='configs/config.yaml')
     args = parser.parse_args()
 
     with open(args.config) as f:
